@@ -1,0 +1,5 @@
+/bin/
+/cobalt-server
+/cobalt-cli
+*.out
+.DS_Store
