@@ -20,3 +20,10 @@ cobaltdb/
 ├── LICENSE
 └── .gitignore
 ```
+
+## Testing
+
+```sh
+go test ./...
+go test -race ./...
+```
