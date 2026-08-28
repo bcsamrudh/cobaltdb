@@ -8,8 +8,7 @@ foundation for a distributed database.
 ```text
 cobaltdb/
 ├── cmd/
-│   ├── server/
-│   └── cli/
+│   └── cobalt/
 ├── internal/
 │   ├── server/
 │   ├── protocol/
@@ -31,7 +30,7 @@ go test -race ./...
 ## Run the server
 
 ```sh
-go run ./cmd/server
+go run ./cmd/cobalt server
 ```
 
 The server listens on `127.0.0.1:6380` by default. Connect with Netcat in another Terminal:
@@ -60,9 +59,5 @@ false
 You can also listen on a different address:
 
 ```sh
-go run ./cmd/server -addr 127.0.0.1:7000
+go run ./cmd/cobalt server -addr=127.0.0.1:7000
 ```
-
-It currently accepts `SET`, `GET`, `DELETE`, and `EXISTS`, with each TCP
-connection handled concurrently. A dedicated protocol package and interactive
-CLI will be added in later tasks.
