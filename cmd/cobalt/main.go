@@ -7,17 +7,24 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
+	"github.com/bcsamrudh/cobaltdb/internal/client"
+	"github.com/bcsamrudh/cobaltdb/internal/protocol"
 	"github.com/bcsamrudh/cobaltdb/internal/server"
 	"github.com/bcsamrudh/cobaltdb/internal/store"
 )
 
 const usage = `Usage:
   cobalt server [-dev] [-addr address]
+  cobalt kv [-addr address] put <key> <value>
+  cobalt kv [-addr address] get <key>
+  cobalt kv [-addr address] delete <key>
+  cobalt kv [-addr address] exists <key>
 
 Commands:
   server    Start the CobaltDB server
-  kv        Key-value commands (coming in a later task)
+  kv        Read and write key-value data
 `
 
 type serverOptions struct {
@@ -53,9 +60,83 @@ func run(args []string) error {
 		}
 		return database.ListenAndServe(options.address)
 	case "kv":
-		return errors.New("kv commands are not implemented yet")
+		return runKV(args[1:], os.Stdout)
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
+	}
+}
+
+func runKV(args []string, output io.Writer) error {
+	flags := flag.NewFlagSet("kv", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	address := flags.String("addr", "127.0.0.1:6380", "CobaltDB server address")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+
+	request, err := buildKVRequest(flags.Args())
+	if err != nil {
+		return err
+	}
+	response, err := client.New(*address).Execute(request)
+	if err != nil {
+		return err
+	}
+	display, err := displayResponse(response)
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(output, display)
+	return err
+}
+
+func buildKVRequest(args []string) (string, error) {
+	if len(args) == 0 {
+		return "", errors.New("a kv operation is required")
+	}
+
+	switch strings.ToLower(args[0]) {
+	case "put":
+		if len(args) < 3 {
+			return "", errors.New("usage: cobalt kv put <key> <value>")
+		}
+		return fmt.Sprintf("%s %s %s", protocol.Set, args[1], strings.Join(args[2:], " ")), nil
+	case "get":
+		return singleKeyRequest(protocol.Get, args)
+	case "delete":
+		return singleKeyRequest(protocol.Delete, args)
+	case "exists":
+		return singleKeyRequest(protocol.Exists, args)
+	default:
+		return "", fmt.Errorf("unknown kv operation %q", args[0])
+	}
+}
+
+func singleKeyRequest(operation protocol.Operation, args []string) (string, error) {
+	if len(args) != 2 {
+		return "", fmt.Errorf("usage: cobalt kv %s <key>", strings.ToLower(string(operation)))
+	}
+	return fmt.Sprintf("%s %s", operation, args[1]), nil
+}
+
+func displayResponse(response protocol.Response) (string, error) {
+	switch {
+	case response == protocol.OK:
+		return "OK", nil
+	case response == protocol.Deleted:
+		return "OK", nil
+	case response == protocol.NotFound:
+		return "(nil)", nil
+	case response == protocol.ExistsYes:
+		return "true", nil
+	case response == protocol.ExistsNo:
+		return "false", nil
+	case strings.HasPrefix(string(response), "VALUE "):
+		return strings.TrimPrefix(string(response), "VALUE "), nil
+	case strings.HasPrefix(string(response), "ERROR "):
+		return "", errors.New(strings.TrimPrefix(string(response), "ERROR "))
+	default:
+		return "", fmt.Errorf("invalid server response %q", response)
 	}
 }
 

@@ -12,6 +12,7 @@ cobaltdb/
 ├── internal/
 │   ├── server/
 │   ├── protocol/
+│   ├── client/
 │   └── store/
 ├── tests/
 ├── go.mod
@@ -27,18 +28,26 @@ go test ./...
 go test -race ./...
 ```
 
+## Install
+
+```sh
+go install ./cmd/cobalt
+```
+
+This installs the `cobalt` binary in Go's binary directory. Make sure that
+directory is included in your `PATH`.
+
 ## Run the server
 
 ```sh
-go run ./cmd/cobalt server
+cobalt server
 ```
 
-The server listens on `127.0.0.1:6380` by default.
-
-You can also listen on a different address:
+The server listens on `127.0.0.1:6380` by default. You can also listen on a
+different address:
 
 ```sh
-go run ./cmd/cobalt server -addr=127.0.0.1:7000
+cobalt server -addr=127.0.0.1:7000
 ```
 
 ## Text protocol
@@ -55,16 +64,29 @@ CobaltDB uses newline-delimited UTF-8 requests and responses.
 Invalid requests return `ERROR message`. Command names are case-insensitive,
 keys cannot contain spaces, and `SET` values may contain spaces.
 
-Each TCP connection is handled concurrently. The `kv` client commands will be
-added in the next task.
+Each TCP connection is handled concurrently.
 
-The planned client experience is:
+## Use the client
+
+With the server running in another terminal:
 
 ```sh
-cobalt kv put name samrudh
+cobalt kv put name sam
+# OK
+
 cobalt kv get name
+# sam
+
 cobalt kv exists name
+# true
+
 cobalt kv delete name
+# OK
 ```
 
-> The `cobalt kv` commands are not implemented yet.
+Client commands connect to `127.0.0.1:6380` by default. To use another server,
+place `-addr` before the operation:
+
+```sh
+cobalt kv -addr=127.0.0.1:7000 get name
+```
