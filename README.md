@@ -85,8 +85,15 @@ cobalt kv delete name
 ```
 
 Client commands connect to `127.0.0.1:6380` by default. To use another server,
-place `-addr` before the operation:
+set `COBALT_ADDR` once in your shell:
 
 ```sh
-cobalt kv -addr=127.0.0.1:7000 get name
+export COBALT_ADDR=127.0.0.1:7000
+cobalt kv get name
+```
+
+For a one-off client command, `-addr` can still override `COBALT_ADDR`:
+
+```sh
+cobalt kv -addr=127.0.0.1:8000 get name
 ```

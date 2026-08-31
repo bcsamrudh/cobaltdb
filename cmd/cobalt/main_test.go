@@ -33,6 +33,20 @@ func TestParseServerOptionsDefaults(t *testing.T) {
 	}
 }
 
+func TestClientAddressFromEnvironment(t *testing.T) {
+	t.Setenv("COBALT_ADDR", "127.0.0.1:7000")
+	if got := clientAddress(); got != "127.0.0.1:7000" {
+		t.Fatalf("clientAddress() = %q, want 127.0.0.1:7000", got)
+	}
+}
+
+func TestClientAddressDefaults(t *testing.T) {
+	t.Setenv("COBALT_ADDR", "")
+	if got := clientAddress(); got != defaultServerAddress {
+		t.Fatalf("clientAddress() = %q, want %q", got, defaultServerAddress)
+	}
+}
+
 func TestRunRequiresCommand(t *testing.T) {
 	err := run(nil)
 	if err == nil || !strings.Contains(err.Error(), "command is required") {

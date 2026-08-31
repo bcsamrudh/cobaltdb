@@ -27,6 +27,8 @@ Commands:
   kv        Read and write key-value data
 `
 
+const defaultServerAddress = "127.0.0.1:6380"
+
 type serverOptions struct {
 	address string
 	dev     bool
@@ -69,7 +71,7 @@ func run(args []string) error {
 func runKV(args []string, output io.Writer) error {
 	flags := flag.NewFlagSet("kv", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
-	address := flags.String("addr", "127.0.0.1:6380", "CobaltDB server address")
+	address := flags.String("addr", clientAddress(), "CobaltDB server address")
 	if err := flags.Parse(args); err != nil {
 		return err
 	}
@@ -145,7 +147,7 @@ func parseServerOptions(args []string) (serverOptions, error) {
 	flags := flag.NewFlagSet("server", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	flags.BoolVar(&options.dev, "dev", false, "run the in-memory development server")
-	flags.StringVar(&options.address, "addr", "127.0.0.1:6380", "TCP address to listen on")
+	flags.StringVar(&options.address, "addr", defaultServerAddress, "TCP address to listen on")
 	if err := flags.Parse(args); err != nil {
 		return serverOptions{}, err
 	}
@@ -153,4 +155,11 @@ func parseServerOptions(args []string) (serverOptions, error) {
 		return serverOptions{}, fmt.Errorf("unexpected arguments: %v", flags.Args())
 	}
 	return options, nil
+}
+
+func clientAddress() string {
+	if address := os.Getenv("COBALT_ADDR"); address != "" {
+		return address
+	}
+	return defaultServerAddress
 }
