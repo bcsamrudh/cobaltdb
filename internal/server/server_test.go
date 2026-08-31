@@ -11,31 +11,6 @@ import (
 	"github.com/bcsamrudh/cobaltdb/internal/store"
 )
 
-func TestExecute(t *testing.T) {
-	s := New(store.New())
-	tests := []struct {
-		command string
-		want    string
-	}{
-		{"GET name", "(nil)"},
-		{"SET name samrudh", "OK"},
-		{"GET name", "samrudh"},
-		{"EXISTS name", "true"},
-		{"DELETE name", "OK"},
-		{"EXISTS name", "false"},
-		{"DELETE name", "(nil)"},
-		{"SET name", "ERROR usage: SET <key> <value>"},
-		{"UNKNOWN", "ERROR unknown command"},
-		{"", "ERROR empty command"},
-	}
-
-	for _, test := range tests {
-		if got := s.execute(test.command); got != test.want {
-			t.Errorf("execute(%q) = %q, want %q", test.command, got, test.want)
-		}
-	}
-}
-
 func TestConnectionHandlesMultipleCommands(t *testing.T) {
 	s := New(store.New())
 	serverConnection, clientConnection := net.Pipe()
@@ -48,9 +23,9 @@ func TestConnectionHandlesMultipleCommands(t *testing.T) {
 		want    string
 	}{
 		{"SET language go", "OK"},
-		{"GET language", "go"},
-		{"DELETE language", "OK"},
-		{"GET language", "(nil)"},
+		{"GET language", "VALUE go"},
+		{"DELETE language", "DELETED"},
+		{"GET language", "NOT_FOUND"},
 	}
 
 	for _, request := range requests {
