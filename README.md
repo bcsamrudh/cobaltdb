@@ -3,6 +3,19 @@
 CobaltDB is a lightweight in-memory key-value store written in Go, built as a
 foundation for a distributed database.
 
+## Current status
+
+Week 1 complete — single-node in-memory database (`v0.1.0`).
+
+## Features
+
+- Thread-safe in-memory key-value store
+- Concurrent TCP clients
+- Line-oriented text protocol
+- `SET`, `GET`, `DELETE`, and `EXISTS` operations
+- Unified `cobalt` server and client command
+- Configurable client address through `COBALT_ADDR`
+
 ## Project structure
 
 ```text
@@ -27,6 +40,10 @@ cobaltdb/
 go test ./...
 go test -race ./...
 ```
+
+The test suite includes a socket-level workload with 100 concurrent clients and
+more than 20,000 protocol operations. It also covers the store, protocol,
+server, client, and command-line behavior.
 
 ## Install
 
@@ -97,3 +114,26 @@ For a one-off client command, `-addr` can still override `COBALT_ADDR`:
 ```sh
 cobalt kv -addr=127.0.0.1:8000 get name
 ```
+
+## Architecture
+
+```text
+cobalt command -> TCP client -> TCP server -> protocol -> concurrent store
+```
+
+The storage engine is independent of networking. The protocol package owns
+command parsing and wire responses, while the server gives every connection
+its own goroutine and shares one store protected by `sync.RWMutex`.
+
+## Roadmap
+
+- [x] In-memory key-value store
+- [x] TCP server
+- [x] Concurrent clients
+- [x] Text protocol
+- [x] Unified command-line client
+- [ ] Write-ahead log and crash recovery
+- [ ] Snapshots
+- [ ] Replication
+- [ ] Consistent hashing
+- [ ] Failure detection and cluster management
