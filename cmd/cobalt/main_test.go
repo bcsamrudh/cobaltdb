@@ -18,6 +18,19 @@ func TestParseServerOptions(t *testing.T) {
 	if options.address != "127.0.0.1:7000" {
 		t.Fatalf("address = %q, want 127.0.0.1:7000", options.address)
 	}
+	if options.dataDirectory != "./data" {
+		t.Fatalf("dataDirectory = %q, want ./data", options.dataDirectory)
+	}
+}
+
+func TestParseServerDataDirectory(t *testing.T) {
+	options, err := parseServerOptions([]string{"-data-dir", "/tmp/cobalt-data"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if options.dataDirectory != "/tmp/cobalt-data" {
+		t.Fatalf("dataDirectory = %q, want /tmp/cobalt-data", options.dataDirectory)
+	}
 }
 
 func TestParseServerOptionsDefaults(t *testing.T) {

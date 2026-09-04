@@ -8,16 +8,15 @@ import (
 	"net"
 
 	"github.com/bcsamrudh/cobaltdb/internal/protocol"
-	"github.com/bcsamrudh/cobaltdb/internal/store"
 )
 
 // Server handles TCP clients using a shared Store.
 type Server struct {
-	store *store.Store
+	store protocol.Store
 }
 
 // New creates a server backed by database.
-func New(database *store.Store) *Server {
+func New(database protocol.Store) *Server {
 	return &Server{store: database}
 }
 

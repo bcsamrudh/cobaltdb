@@ -5,7 +5,7 @@ foundation for a distributed database.
 
 ## Current status
 
-Week 1 complete — single-node in-memory database (`v0.1.0`).
+Week 2 — write-ahead logging and persistence (`v0.2.0` in progress).
 
 ## Features
 
@@ -15,6 +15,8 @@ Week 1 complete — single-node in-memory database (`v0.1.0`).
 - `SET`, `GET`, `DELETE`, and `EXISTS` operations
 - Unified `cobalt` server and client command
 - Configurable client address through `COBALT_ADDR`
+- Append-only write-ahead log with `fsync`
+- Automatic recovery when the server restarts
 
 ## Project structure
 
@@ -60,11 +62,17 @@ directory is included in your `PATH`.
 cobalt server
 ```
 
-The server listens on `127.0.0.1:6380` by default. You can also listen on a
-different address:
+The server listens on `127.0.0.1:6380` and stores its WAL in `./data` by
+default. Choose another data directory or address with flags:
 
 ```sh
-cobalt server -addr=127.0.0.1:7000
+cobalt server -data-dir=/var/lib/cobaltdb -addr=127.0.0.1:7000
+```
+
+For an ephemeral in-memory server whose data is discarded on shutdown:
+
+```sh
+cobalt server -dev
 ```
 
 ## Text protocol
@@ -132,7 +140,7 @@ its own goroutine and shares one store protected by `sync.RWMutex`.
 - [x] Concurrent clients
 - [x] Text protocol
 - [x] Unified command-line client
-- [ ] Write-ahead log and crash recovery
+- [x] Write-ahead log and restart recovery
 - [ ] Snapshots
 - [ ] Replication
 - [ ] Consistent hashing

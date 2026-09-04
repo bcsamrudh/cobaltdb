@@ -8,7 +8,9 @@ import (
 
 func TestSetAndGet(t *testing.T) {
 	s := New()
-	s.Set("name", "samrudh")
+	if err := s.Set("name", "samrudh"); err != nil {
+		t.Fatal(err)
+	}
 	value, exists := s.Get("name")
 	if !exists || value != "samrudh" {
 		t.Fatalf("Get(name) = %q, %v; want %q, true", value, exists, "samrudh")
@@ -17,8 +19,12 @@ func TestSetAndGet(t *testing.T) {
 
 func TestSetOverwritesExistingValue(t *testing.T) {
 	s := New()
-	s.Set("language", "rust")
-	s.Set("language", "go")
+	if err := s.Set("language", "rust"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Set("language", "go"); err != nil {
+		t.Fatal(err)
+	}
 	value, exists := s.Get("language")
 	if !exists || value != "go" {
 		t.Fatalf("Get(language) = %q, %v; want %q, true", value, exists, "go")
@@ -35,14 +41,24 @@ func TestGetNonexistentKey(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	s := New()
-	s.Set("language", "go")
-	if !s.Delete("language") {
+	if err := s.Set("language", "go"); err != nil {
+		t.Fatal(err)
+	}
+	deleted, err := s.Delete("language")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !deleted {
 		t.Fatal("Delete(language) = false, want true")
 	}
 	if _, exists := s.Get("language"); exists {
 		t.Fatal("language still exists after deletion")
 	}
-	if s.Delete("language") {
+	deleted, err = s.Delete("language")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted {
 		t.Fatal("deleting a missing key returned true")
 	}
 }
@@ -52,11 +68,15 @@ func TestExists(t *testing.T) {
 	if s.Exists("name") {
 		t.Fatal("missing name unexpectedly exists")
 	}
-	s.Set("name", "samrudh")
+	if err := s.Set("name", "samrudh"); err != nil {
+		t.Fatal(err)
+	}
 	if !s.Exists("name") {
 		t.Fatal("stored name does not exist")
 	}
-	s.Delete("name")
+	if _, err := s.Delete("name"); err != nil {
+		t.Fatal(err)
+	}
 	if s.Exists("name") {
 		t.Fatal("deleted name still exists")
 	}
@@ -74,7 +94,10 @@ func TestConcurrentAccess(t *testing.T) {
 			defer wg.Done()
 			key := fmt.Sprintf("worker-%d", worker)
 			for operation := 0; operation < operations; operation++ {
-				s.Set(key, fmt.Sprintf("value-%d", operation))
+				if err := s.Set(key, fmt.Sprintf("value-%d", operation)); err != nil {
+					t.Errorf("Set(%s) failed: %v", key, err)
+					return
+				}
 				if _, exists := s.Get(key); !exists {
 					t.Errorf("%s disappeared after Set", key)
 					return
@@ -84,7 +107,12 @@ func TestConcurrentAccess(t *testing.T) {
 					return
 				}
 			}
-			if !s.Delete(key) {
+			deleted, err := s.Delete(key)
+			if err != nil {
+				t.Errorf("Delete(%s) failed: %v", key, err)
+				return
+			}
+			if !deleted {
 				t.Errorf("Delete(%s) = false, want true", key)
 			}
 		}(worker)

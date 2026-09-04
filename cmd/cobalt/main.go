@@ -12,11 +12,12 @@ import (
 	"github.com/bcsamrudh/cobaltdb/internal/client"
 	"github.com/bcsamrudh/cobaltdb/internal/protocol"
 	"github.com/bcsamrudh/cobaltdb/internal/server"
+	"github.com/bcsamrudh/cobaltdb/internal/storage"
 	"github.com/bcsamrudh/cobaltdb/internal/store"
 )
 
 const usage = `Usage:
-  cobalt server [-dev] [-addr address]
+  cobalt server [-dev] [-addr address] [-data-dir path]
   cobalt kv [-addr address] put <key> <value>
   cobalt kv [-addr address] get <key>
   cobalt kv [-addr address] delete <key>
@@ -30,8 +31,9 @@ Commands:
 const defaultServerAddress = "127.0.0.1:6380"
 
 type serverOptions struct {
-	address string
-	dev     bool
+	address       string
+	dataDirectory string
+	dev           bool
 }
 
 func main() {
@@ -54,13 +56,20 @@ func run(args []string) error {
 			return err
 		}
 
-		database := server.New(store.New())
+		var database protocol.Store
 		if options.dev {
+			database = store.New()
 			log.Printf("CobaltDB development server listening on %s", options.address)
 		} else {
-			log.Printf("CobaltDB server listening on %s", options.address)
+			persistent, err := storage.Open(options.dataDirectory)
+			if err != nil {
+				return err
+			}
+			defer persistent.Close()
+			database = persistent
+			log.Printf("CobaltDB server listening on %s (data: %s)", options.address, options.dataDirectory)
 		}
-		return database.ListenAndServe(options.address)
+		return server.New(database).ListenAndServe(options.address)
 	case "kv":
 		return runKV(args[1:], os.Stdout)
 	default:
@@ -148,6 +157,7 @@ func parseServerOptions(args []string) (serverOptions, error) {
 	flags.SetOutput(io.Discard)
 	flags.BoolVar(&options.dev, "dev", false, "run the in-memory development server")
 	flags.StringVar(&options.address, "addr", defaultServerAddress, "TCP address to listen on")
+	flags.StringVar(&options.dataDirectory, "data-dir", "./data", "directory for persistent data")
 	if err := flags.Parse(args); err != nil {
 		return serverOptions{}, err
 	}

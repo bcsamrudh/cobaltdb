@@ -25,9 +25,9 @@ type Command struct {
 
 // Store describes the storage operations required by the protocol.
 type Store interface {
-	Set(key, value string)
+	Set(key, value string) error
 	Get(key string) (string, bool)
-	Delete(key string) bool
+	Delete(key string) (bool, error)
 	Exists(key string) bool
 }
 
@@ -78,7 +78,9 @@ func Execute(database Store, line string) Response {
 
 	switch command.Operation {
 	case Set:
-		database.Set(command.Key, command.Value)
+		if err := database.Set(command.Key, command.Value); err != nil {
+			return Error(err)
+		}
 		return OK
 	case Get:
 		value, found := database.Get(command.Key)
@@ -87,7 +89,11 @@ func Execute(database Store, line string) Response {
 		}
 		return Value(value)
 	case Delete:
-		if !database.Delete(command.Key) {
+		deleted, err := database.Delete(command.Key)
+		if err != nil {
+			return Error(err)
+		}
+		if !deleted {
 			return NotFound
 		}
 		return Deleted

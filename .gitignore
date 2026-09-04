@@ -3,3 +3,4 @@
 /cobalt-cli
 *.out
 .DS_Store
+/data/

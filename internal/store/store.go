@@ -15,10 +15,11 @@ func New() *Store {
 }
 
 // Set associates key with value, replacing any existing value.
-func (s *Store) Set(key, value string) {
+func (s *Store) Set(key, value string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data[key] = value
+	return nil
 }
 
 // Get returns the value associated with key and whether the key exists.
@@ -30,14 +31,14 @@ func (s *Store) Get(key string) (string, bool) {
 }
 
 // Delete removes key and reports whether it existed.
-func (s *Store) Delete(key string) bool {
+func (s *Store) Delete(key string) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, exists := s.data[key]; !exists {
-		return false
+		return false, nil
 	}
 	delete(s.data, key)
-	return true
+	return true, nil
 }
 
 // Exists reports whether key exists.
