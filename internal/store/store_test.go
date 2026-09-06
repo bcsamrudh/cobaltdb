@@ -126,3 +126,20 @@ func TestConcurrentAccess(t *testing.T) {
 		}
 	}
 }
+
+func TestSnapshotIsIndependent(t *testing.T) {
+	s := New()
+	if err := s.Set("name", "samrudh"); err != nil {
+		t.Fatal(err)
+	}
+	snapshot := s.Snapshot()
+	snapshot["name"] = "changed"
+	snapshot["extra"] = "value"
+
+	if value, _ := s.Get("name"); value != "samrudh" {
+		t.Fatalf("snapshot mutation changed stored value to %q", value)
+	}
+	if s.Exists("extra") {
+		t.Fatal("snapshot mutation added a key to the store")
+	}
+}

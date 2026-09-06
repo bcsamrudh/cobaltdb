@@ -48,3 +48,15 @@ func (s *Store) Exists(key string) bool {
 	_, exists := s.data[key]
 	return exists
 }
+
+// Snapshot returns an independent copy of all current key-value pairs.
+func (s *Store) Snapshot() map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	data := make(map[string]string, len(s.data))
+	for key, value := range s.data {
+		data[key] = value
+	}
+	return data
+}

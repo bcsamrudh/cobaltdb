@@ -112,6 +112,22 @@ func (l *Log) Close() error {
 	return l.file.Close()
 }
 
+// Reset durably removes all records after a snapshot has been published.
+func (l *Log) Reset() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if err := l.file.Truncate(0); err != nil {
+		return fmt.Errorf("truncate WAL: %w", err)
+	}
+	if _, err := l.file.Seek(0, io.SeekStart); err != nil {
+		return fmt.Errorf("seek reset WAL: %w", err)
+	}
+	if err := l.file.Sync(); err != nil {
+		return fmt.Errorf("sync reset WAL: %w", err)
+	}
+	return nil
+}
+
 func validate(record Record) error {
 	if record.Key == "" {
 		return errors.New("key is empty")

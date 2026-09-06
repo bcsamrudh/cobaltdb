@@ -145,3 +145,33 @@ func TestAppendRejectsInvalidRecord(t *testing.T) {
 		t.Fatal("Append() accepted an unknown operation")
 	}
 }
+
+func TestResetRemovesExistingRecords(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "cobalt.wal")
+	log, err := Open(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer log.Close()
+	if err := log.Append(Record{Operation: Set, Key: "name", Value: "samrudh"}); err != nil {
+		t.Fatal(err)
+	}
+	if err := log.Reset(); err != nil {
+		t.Fatal(err)
+	}
+	if err := log.Append(Record{Operation: Set, Key: "language", Value: "go"}); err != nil {
+		t.Fatal(err)
+	}
+
+	var got []Record
+	if err := log.Replay(func(record Record) error {
+		got = append(got, record)
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	want := []Record{{Operation: Set, Key: "language", Value: "go"}}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("Replay() after Reset = %#v, want %#v", got, want)
+	}
+}
