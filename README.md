@@ -17,6 +17,7 @@ Week 2 — write-ahead logging and persistence (`v0.2.0` in progress).
 - Configurable client address through `COBALT_ADDR`
 - Append-only write-ahead log with `fsync`
 - Automatic recovery when the server restarts
+- Recovery from an incomplete final WAL write
 
 ## Project structure
 
@@ -132,6 +133,10 @@ cobalt command -> TCP client -> TCP server -> protocol -> concurrent store
 The storage engine is independent of networking. The protocol package owns
 command parsing and wire responses, while the server gives every connection
 its own goroutine and shares one store protected by `sync.RWMutex`.
+
+WAL records are newline-terminated JSON. During recovery, CobaltDB discards an
+incomplete final record that may result from a crash. A malformed complete
+record still stops startup so earlier corruption is never silently ignored.
 
 ## Roadmap
 

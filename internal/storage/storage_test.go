@@ -1,6 +1,10 @@
 package storage
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestRecovery(t *testing.T) {
 	directory := t.TempDir()
@@ -49,5 +53,39 @@ func TestDeleteMissingKeyIsNotPersisted(t *testing.T) {
 	}
 	if err := database.Close(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRecoveryFromIncompleteWALTail(t *testing.T) {
+	directory := t.TempDir()
+	database, err := Open(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Set("language", "go"); err != nil {
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := os.OpenFile(filepath.Join(directory, "cobalt.wal"), os.O_APPEND|os.O_WRONLY, 0o600)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := file.WriteString(`{"operation":"DELETE","key":`); err != nil {
+		t.Fatal(err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	recovered, err := Open(directory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer recovered.Close()
+	if value, found := recovered.Get("language"); !found || value != "go" {
+		t.Fatalf("Get(language) = %q, %v; want go, true", value, found)
 	}
 }

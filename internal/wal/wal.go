@@ -71,13 +71,26 @@ func (l *Log) Replay(apply func(Record) error) error {
 	if _, err := l.file.Seek(0, io.SeekStart); err != nil {
 		return fmt.Errorf("seek WAL: %w", err)
 	}
-	scanner := bufio.NewScanner(l.file)
-	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+	reader := bufio.NewReader(l.file)
 	line := 0
-	for scanner.Scan() {
+	var validBytes int64
+	for {
+		encoded, readErr := reader.ReadBytes('\n')
+		if errors.Is(readErr, io.EOF) {
+			if len(encoded) > 0 {
+				if err := l.truncate(validBytes); err != nil {
+					return err
+				}
+			}
+			break
+		}
+		if readErr != nil {
+			return fmt.Errorf("read WAL: %w", readErr)
+		}
+
 		line++
 		var record Record
-		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+		if err := json.Unmarshal(encoded[:len(encoded)-1], &record); err != nil {
 			return fmt.Errorf("decode WAL record at line %d: %w", line, err)
 		}
 		if err := validate(record); err != nil {
@@ -86,9 +99,7 @@ func (l *Log) Replay(apply func(Record) error) error {
 		if err := apply(record); err != nil {
 			return fmt.Errorf("apply WAL record at line %d: %w", line, err)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("read WAL: %w", err)
+		validBytes += int64(len(encoded))
 	}
 	_, err := l.file.Seek(0, io.SeekEnd)
 	return err
@@ -111,4 +122,14 @@ func validate(record Record) error {
 	default:
 		return fmt.Errorf("unknown operation %q", record.Operation)
 	}
+}
+
+func (l *Log) truncate(size int64) error {
+	if err := l.file.Truncate(size); err != nil {
+		return fmt.Errorf("truncate incomplete WAL tail: %w", err)
+	}
+	if err := l.file.Sync(); err != nil {
+		return fmt.Errorf("sync truncated WAL: %w", err)
+	}
+	return nil
 }
