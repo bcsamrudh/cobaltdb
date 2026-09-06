@@ -18,6 +18,7 @@ Week 2 — write-ahead logging and persistence (`v0.2.0` in progress).
 - Append-only write-ahead log with `fsync`
 - Automatic recovery when the server restarts
 - Recovery from an incomplete final WAL write
+- Atomic snapshots and WAL compaction
 
 ## Project structure
 
@@ -138,6 +139,9 @@ WAL records are newline-terminated JSON. During recovery, CobaltDB discards an
 incomplete final record that may result from a crash. A malformed complete
 record still stops startup so earlier corruption is never silently ignored.
 
+On a clean shutdown, CobaltDB atomically writes `cobalt.snapshot` and resets the
+WAL. Recovery loads that snapshot first and then replays any newer WAL records.
+
 ## Roadmap
 
 - [x] In-memory key-value store
@@ -146,7 +150,7 @@ record still stops startup so earlier corruption is never silently ignored.
 - [x] Text protocol
 - [x] Unified command-line client
 - [x] Write-ahead log and restart recovery
-- [ ] Snapshots
+- [x] Snapshots
 - [ ] Replication
 - [ ] Consistent hashing
 - [ ] Failure detection and cluster management
